@@ -309,7 +309,7 @@ const Dashboard = () => {
       </div>
 
       {/* Mobile Footer - Backup and Logout */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex gap-3 sm:hidden z-40">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex gap-3 sm:hidden z-50">
         <button
           onClick={() => setShowBackupModal(true)}
           className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-400 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-400/30 transition-all duration-300 text-sm"
@@ -365,14 +365,28 @@ const Dashboard = () => {
                     const response = await api.get('/backup/export', {
                       responseType: 'blob'
                     });
-                    const url = window.URL.createObjectURL(new Blob([response.data]));
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.setAttribute('download', `smartkhata_backup_${new Date().toISOString().slice(0, 10)}.pdf`);
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
+                    
+                    // Create blob and download
+                    const blob = new Blob([response.data], { type: 'application/pdf' });
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    // For mobile, try to open in new tab first
+                    if (isNative) {
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    } else {
+                      // For web, download normally
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.setAttribute('download', `smartkhata_backup_${new Date().toISOString().slice(0, 10)}.pdf`);
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                    }
+                    
+                    // Cleanup
+                    setTimeout(() => window.URL.revokeObjectURL(url), 100);
                   } catch (err) {
+                    console.error('Export error:', err);
                     setImportError('Failed to export backup');
                   }
                 }}
