@@ -12,6 +12,7 @@ const getToken = () => localStorage.getItem('token');
 // Create axios instance with JWT token
 const api = axios.create({
   baseURL: API_URL,
+  withCredentials: false
 });
 
 api.interceptors.request.use((config) => {
