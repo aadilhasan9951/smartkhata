@@ -63,13 +63,9 @@ const Dashboard = () => {
 
     // Handle Android back button
     if (isNative) {
-      const backHandler = App.addListener('backButton', ({ canGoBack }) => {
-        if (!canGoBack) {
-          // Don't exit app, just show a toast or do nothing
-          App.exitApp();
-        } else {
-          window.history.back();
-        }
+      const backHandler = App.addListener('backButton', () => {
+        // Don't exit app, just do nothing or show a message
+        // User can use logout button to exit
       });
       return () => backHandler.remove();
     }

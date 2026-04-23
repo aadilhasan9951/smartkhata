@@ -114,13 +114,15 @@ const CustomerDetail = () => {
     setParticles(newParticles);
 
     // Handle Android back button
-    const backHandler = App.addListener('backButton', () => {
-      navigate('/dashboard');
-    });
+    if (Capacitor.isNativePlatform()) {
+      const backHandler = App.addListener('backButton', () => {
+        navigate('/dashboard');
+      });
 
-    return () => {
-      backHandler.then(handler => handler.remove());
-    };
+      return () => {
+        backHandler.then(handler => handler.remove());
+      };
+    }
   }, [id, filterType, fetchCustomerData, fetchReminderSchedule, navigate]);
 
   const handleAddTransaction = async (e) => {
@@ -659,29 +661,71 @@ const CustomerDetail = () => {
             
             <div className="flex gap-3 sm:gap-4">
               <button
-                onClick={() => {
-                  const link = document.createElement('a');
-                  link.href = balanceImageUrl;
-                  link.download = `balance_${customer.name}.png`;
-                  link.click();
+                onClick={async () => {
+                  try {
+                    // Convert dataURL to blob
+                    const response = await fetch(balanceImageUrl);
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `balance_${customer.name}.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    
+                    // Cleanup
+                    setTimeout(() => window.URL.revokeObjectURL(url), 100);
+                  } catch (err) {
+                    console.error('Download error:', err);
+                    alert('Failed to download image');
+                  }
                 }}
                 className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-sm sm:text-base"
               >
                 Download Image
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const message = `Hello ${customer.name}, your outstanding balance is ₹${customer.balance?.toFixed(2)}. Please pay when possible. - ${user?.name || 'Shop'}`;
                   
-                  // Clean phone number - remove +91 prefix and spaces
-                  const cleanPhone = customer.phone.replace('+91', '').replace(/\s/g, '');
-                  
-                  // Open WhatsApp with message (use country code 91 for India)
-                  const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
-                  window.open(whatsappUrl, '_blank');
-                  
-                  setShowBalanceImageModal(false);
-                  setBalanceImageUrl('');
+                  try {
+                    // Convert dataURL to blob
+                    const response = await fetch(balanceImageUrl);
+                    const blob = await response.blob();
+                    const file = new File([blob], `balance_${customer.name}.png`, { type: 'image/png' });
+                    
+                    // Try Web Share API with file
+                    if (navigator.share && navigator.canShare) {
+                      const shareData = {
+                        files: [file],
+                        text: message
+                      };
+                      
+                      if (navigator.canShare(shareData)) {
+                        await navigator.share(shareData);
+                        setShowBalanceImageModal(false);
+                        setBalanceImageUrl('');
+                        return;
+                      }
+                    }
+                    
+                    // Fallback: Open WhatsApp with text only
+                    const cleanPhone = customer.phone.replace('+91', '').replace(/\s/g, '');
+                    const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+                    window.open(whatsappUrl, '_blank');
+                    setShowBalanceImageModal(false);
+                    setBalanceImageUrl('');
+                  } catch (err) {
+                    console.error('Share error:', err);
+                    // Fallback to text-only WhatsApp
+                    const cleanPhone = customer.phone.replace('+91', '').replace(/\s/g, '');
+                    const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+                    window.open(whatsappUrl, '_blank');
+                    setShowBalanceImageModal(false);
+                    setBalanceImageUrl('');
+                  }
                 }}
                 className="flex-1 premium-button text-sm sm:text-base"
               >
