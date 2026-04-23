@@ -87,14 +87,16 @@ const Customers = () => {
   const handleAddCustomer = async (e) => {
     e.preventDefault();
     
+    // Remove +91 prefix and spaces from phone number
+    const cleanPhone = formData.phone.replace('+91', '').replace(/\s/g, '');
     const phoneRegex = /^[6-9]\d{9}$/;
-    if (!formData.phone || !phoneRegex.test(formData.phone)) {
+    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
       alert('Please enter a valid 10-digit Indian phone number starting with 6, 7, 8, or 9');
       return;
     }
     
     try {
-      await api.post('/customers', formData);
+      await api.post('/customers', { ...formData, phone: cleanPhone });
       setShowAddModal(false);
       setFormData({ name: '', phone: '' });
       setIsValidPhone(false);
@@ -107,14 +109,16 @@ const Customers = () => {
   const handleUpdateCustomer = async (e) => {
     e.preventDefault();
     
+    // Remove +91 prefix and spaces from phone number
+    const cleanPhone = formData.phone.replace('+91', '').replace(/\s/g, '');
     const phoneRegex = /^[6-9]\d{9}$/;
-    if (!formData.phone || !phoneRegex.test(formData.phone)) {
+    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
       alert('Please enter a valid 10-digit Indian phone number starting with 6, 7, 8, or 9');
       return;
     }
     
     try {
-      await api.put(`/customers/${editingCustomer._id}`, formData);
+      await api.put(`/customers/${editingCustomer._id}`, { ...formData, phone: cleanPhone });
       setEditingCustomer(null);
       setFormData({ name: '', phone: '' });
       setIsValidPhone(false);
