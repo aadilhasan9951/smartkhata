@@ -5,7 +5,9 @@ import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, IndianRupee, Trash2, Send, Calendar, Bell, Sparkles } from 'lucide-react';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
+import { registerPlugin } from '@capacitor/core';
+
+const WhatsAppShare = registerPlugin('WhatsAppShare');
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
@@ -112,18 +114,7 @@ const CustomerDetail = () => {
       });
     }
     setParticles(newParticles);
-
-    // Handle Android back button
-    if (Capacitor.isNativePlatform()) {
-      const backHandler = App.addListener('backButton', () => {
-        navigate('/dashboard');
-      });
-
-      return () => {
-        backHandler.then(handler => handler.remove());
-      };
-    }
-  }, [id, filterType, fetchCustomerData, fetchReminderSchedule, navigate]);
+  }, [id, filterType, fetchCustomerData, fetchReminderSchedule]);
 
   const handleAddTransaction = async (e) => {
     e.preventDefault();
@@ -691,12 +682,22 @@ const CustomerDetail = () => {
                   const message = `Hello ${customer.name}, your outstanding balance is ₹${customer.balance?.toFixed(2)}. Please pay when possible. - ${user?.name || 'Shop'}`;
                   
                   try {
-                    // Convert dataURL to blob
+                    // Try native Android plugin first
+                    if (Capacitor.isNativePlatform() && WhatsAppShare) {
+                      await WhatsAppShare.shareImage({
+                        imageData: balanceImageUrl,
+                        message: message
+                      });
+                      setShowBalanceImageModal(false);
+                      setBalanceImageUrl('');
+                      return;
+                    }
+                    
+                    // Fallback to Web Share API
                     const response = await fetch(balanceImageUrl);
                     const blob = await response.blob();
                     const file = new File([blob], `balance_${customer.name}.png`, { type: 'image/png' });
                     
-                    // Try Web Share API with file
                     if (navigator.share && navigator.canShare) {
                       const shareData = {
                         files: [file],

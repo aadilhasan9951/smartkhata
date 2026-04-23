@@ -5,7 +5,6 @@ import axios from 'axios';
 import { Users, IndianRupee, TrendingUp, Calendar, LogOut, Sparkles, Plus, User, Download, Upload, Shield } from 'lucide-react';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
@@ -60,15 +59,6 @@ const Dashboard = () => {
       });
     }
     setParticles(newParticles);
-
-    // Handle Android back button
-    if (isNative) {
-      const backHandler = App.addListener('backButton', () => {
-        // Don't exit app, just do nothing or show a message
-        // User can use logout button to exit
-      });
-      return () => backHandler.remove();
-    }
   }, []);
 
   const fetchDashboard = async () => {
