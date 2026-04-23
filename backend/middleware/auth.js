@@ -1,13 +1,20 @@
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
 
-// Middleware to check if user is authenticated via session
+const JWT_SECRET = process.env.SESSION_SECRET || 'smartkhata-secret';
+
+// Middleware to check if user is authenticated via JWT token
 const authMiddleware = async (req, res, next) => {
   try {
-    if (!req.session || !req.session.userId) {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    const user = await User.findById(req.session.userId);
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
     if (!user) {
       return res.status(401).json({ error: 'User not found' });
     }
@@ -16,7 +23,7 @@ const authMiddleware = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(500).json({ error: 'Authentication error' });
+    res.status(401).json({ error: 'Invalid or expired token' });
   }
 };
 

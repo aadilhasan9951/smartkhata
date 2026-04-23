@@ -5,6 +5,20 @@ const AuthContext = createContext(null);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
+// Create axios instance with default headers
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+// Add token to requests if available
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -15,11 +29,17 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const response = await axios.get(`${API_URL}/auth/me`, {
-        withCredentials: true
-      });
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const response = await api.get('/auth/me');
       setUser(response.data.user);
     } catch (error) {
+      localStorage.removeItem('token');
       setUser(null);
     } finally {
       setLoading(false);
@@ -27,19 +47,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (phone, name) => {
-    const response = await axios.post(`${API_URL}/auth/login`, { phone, name }, {
-      withCredentials: true
-    });
-    setUser(response.data.user);
-    // Force a re-auth check to ensure session is properly set
-    await checkAuth();
+    const response = await api.post('/auth/login', { phone, name });
+    const { token, user } = response.data;
+    localStorage.setItem('token', token);
+    setUser(user);
     return response.data;
   };
 
   const logout = async () => {
-    await axios.post(`${API_URL}/auth/logout`, {}, {
-      withCredentials: true
-    });
+    await api.post('/auth/logout');
+    localStorage.removeItem('token');
     setUser(null);
   };
 
