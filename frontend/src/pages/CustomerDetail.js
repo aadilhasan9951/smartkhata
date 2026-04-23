@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, IndianRupee, Trash2, Send, Calendar, Bell, Sparkles } from 'lucide-react';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
@@ -41,6 +42,9 @@ const CustomerDetail = () => {
   const [transactions, setTransactions] = useState([]);
   const [showAddTransaction, setShowAddTransaction] = useState(false);
   const [showReminderSettings, setShowReminderSettings] = useState(false);
+  const [showBalanceImageModal, setShowBalanceImageModal] = useState(false);
+  const [balanceImageUrl, setBalanceImageUrl] = useState('');
+  const [showReminderSuccessModal, setShowReminderSuccessModal] = useState(false);
   const [transactionForm, setTransactionForm] = useState({
     amount: '',
     type: 'credit',
@@ -108,7 +112,16 @@ const CustomerDetail = () => {
       });
     }
     setParticles(newParticles);
-  }, [id, filterType, fetchCustomerData, fetchReminderSchedule]);
+
+    // Handle Android back button
+    const backHandler = App.addListener('backButton', () => {
+      navigate('/dashboard');
+    });
+
+    return () => {
+      backHandler.then(handler => handler.remove());
+    };
+  }, [id, filterType, fetchCustomerData, fetchReminderSchedule, navigate]);
 
   const handleAddTransaction = async (e) => {
     e.preventDefault();
@@ -212,36 +225,9 @@ const CustomerDetail = () => {
   };
   
   const fallbackToWhatsApp = (message, canvas) => {
-    // Convert canvas to blob and try to share via WhatsApp
-    canvas.toBlob(async (blob) => {
-      const safeName = customer.name?.replace(/[^a-zA-Z0-9]/g, '_') || 'customer';
-      const fileName = `balance_${safeName}_${Date.now()}.png`;
-      const file = new File([blob], fileName, { type: 'image/png', lastModified: Date.now() });
-      
-      // Clean phone number for WhatsApp
-      const cleanPhone = customer.phone?.replace(/[^0-9]/g, '') || '';
-      const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
-      
-      // Try to share file with WhatsApp using Web Share API
-      if (navigator.share && navigator.canShare) {
-        const shareData = {
-          files: [file],
-          text: message
-        };
-        
-        if (navigator.canShare(shareData)) {
-          try {
-            await navigator.share(shareData);
-            return;
-          } catch (err) {
-            console.log('Share failed, opening WhatsApp web');
-          }
-        }
-      }
-      
-      // Fallback: Open WhatsApp web with text (image won't be attached)
-      window.open(whatsappUrl, '_blank');
-    }, 'image/png');
+    const imageUrl = canvas.toDataURL('image/png');
+    setBalanceImageUrl(imageUrl);
+    setShowBalanceImageModal(true);
   };
 
   const handleSaveReminder = async () => {
@@ -253,8 +239,8 @@ const CustomerDetail = () => {
       setShowReminderSettings(false);
       fetchReminderSchedule();
       
-      // Show success message
-      alert('Reminder set successfully!');
+      // Show success modal
+      setShowReminderSuccessModal(true);
       
       // If running on Android app, schedule local reminder
       if (window.AndroidInterface && window.AndroidInterface.scheduleReminder) {
@@ -651,6 +637,91 @@ const CustomerDetail = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showBalanceImageModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="premium-card p-4 sm:p-8 w-full max-w-md animate-scale-in">
+            <h2 className="text-lg sm:text-2xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 sm:w-6 sm:h-6 text-purple-500" />
+              Balance Image
+            </h2>
+            
+            <div className="bg-gray-100 rounded-xl p-4 mb-4 flex justify-center">
+              <img src={balanceImageUrl} alt="Balance" className="max-w-full h-auto rounded-lg" />
+            </div>
+            
+            <p className="text-xs sm:text-sm text-gray-600 mb-4 text-center">
+              This image shows the outstanding balance. Send it via WhatsApp.
+            </p>
+            
+            <div className="flex gap-3 sm:gap-4">
+              <button
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = balanceImageUrl;
+                  link.download = `balance_${customer.name}.png`;
+                  link.click();
+                }}
+                className="flex-1 px-4 sm:px-6 py-2 sm:py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-sm sm:text-base"
+              >
+                Download Image
+              </button>
+              <button
+                onClick={() => {
+                  const message = `Hello ${customer.name}, your outstanding balance is ₹${customer.balance?.toFixed(2)}. Please pay when possible. - ${user?.name || 'Shop'}`;
+                  
+                  // Clean phone number - remove +91 prefix and spaces
+                  const cleanPhone = customer.phone.replace('+91', '').replace(/\s/g, '');
+                  
+                  // Open WhatsApp with message (use country code 91 for India)
+                  const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
+                  window.open(whatsappUrl, '_blank');
+                  
+                  setShowBalanceImageModal(false);
+                  setBalanceImageUrl('');
+                }}
+                className="flex-1 premium-button text-sm sm:text-base"
+              >
+                Send via WhatsApp
+              </button>
+            </div>
+            <button
+              onClick={() => {
+                setShowBalanceImageModal(false);
+                setBalanceImageUrl('');
+              }}
+              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-gray-50 text-gray-600 rounded-xl hover:bg-gray-100 transition-colors text-xs sm:text-sm mt-2"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showReminderSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="premium-card p-6 sm:p-8 w-full max-w-md animate-scale-in text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <Bell className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">
+              Reminder Set Successfully!
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+              Reminder has been set for <span className="font-semibold text-purple-600">{customer.name}</span>
+            </p>
+            <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">
+              {reminderSettings.frequency.charAt(0).toUpperCase() + reminderSettings.frequency.slice(1)} at {reminderSettings.time_of_day}
+            </p>
+            <button
+              onClick={() => setShowReminderSuccessModal(false)}
+              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-400 to-emerald-400 text-white rounded-xl hover:shadow-lg hover:shadow-green-400/30 transition-all duration-300 text-sm sm:text-base font-semibold"
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
