@@ -3,15 +3,15 @@ const router = express.Router();
 const ReminderSchedule = require('../models/ReminderSchedule');
 const Customer = require('../models/Customer');
 const { body, validationResult } = require('express-validator');
+const authMiddleware = require('../middleware/auth');
+
+// All routes require authentication
+router.use(authMiddleware);
 
 // Get all reminder schedules for a user
 router.get('/', async (req, res) => {
   try {
-    if (!req.session.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
-    const schedules = await ReminderSchedule.find({ user_id: req.session.userId })
+    const schedules = await ReminderSchedule.find({ user_id: req.user._id })
       .populate('customer_id', 'name phone balance');
 
     res.json({ schedules });
@@ -24,12 +24,8 @@ router.get('/', async (req, res) => {
 // Get reminder schedule for a specific customer
 router.get('/customer/:customerId', async (req, res) => {
   try {
-    if (!req.session.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
     const schedule = await ReminderSchedule.findOne({
-      user_id: req.session.userId,
+      user_id: req.user._id,
       customer_id: req.params.customerId
     });
 
@@ -53,16 +49,12 @@ router.post('/', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    if (!req.session.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
     const { customer_id, frequency, day_of_week, time_of_day, active } = req.body;
 
     // Check if customer belongs to user
     const customer = await Customer.findOne({
       _id: customer_id,
-      user_id: req.session.userId
+      user_id: req.user._id
     });
 
     if (!customer) {
@@ -71,7 +63,7 @@ router.post('/', [
 
     // Check if schedule already exists
     let schedule = await ReminderSchedule.findOne({
-      user_id: req.session.userId,
+      user_id: req.user._id,
       customer_id
     });
 
@@ -94,7 +86,7 @@ router.post('/', [
       const { calculateNextSend } = require('../jobs/sendReminders');
       
       schedule = new ReminderSchedule({
-        user_id: req.session.userId,
+        user_id: req.user._id,
         customer_id,
         frequency: frequency || 'weekly',
         day_of_week: day_of_week || 1,
@@ -120,13 +112,9 @@ router.post('/', [
 // Delete reminder schedule
 router.delete('/:scheduleId', async (req, res) => {
   try {
-    if (!req.session.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
     const schedule = await ReminderSchedule.findOneAndDelete({
       _id: req.params.scheduleId,
-      user_id: req.session.userId
+      user_id: req.user._id
     });
 
     if (!schedule) {
@@ -143,13 +131,9 @@ router.delete('/:scheduleId', async (req, res) => {
 // Toggle reminder active status
 router.patch('/:scheduleId/toggle', async (req, res) => {
   try {
-    if (!req.session.userId) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
-
     const schedule = await ReminderSchedule.findOne({
       _id: req.params.scheduleId,
-      user_id: req.session.userId
+      user_id: req.user._id
     });
 
     if (!schedule) {

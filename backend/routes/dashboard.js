@@ -47,9 +47,9 @@ router.get('/', async (req, res) => {
       .filter(t => t.type === 'debit')
       .reduce((acc, t) => acc + t.amount, 0);
 
-    // Get customers with outstanding balance
+    // Get all customers with their balances
     const customers = await Customer.find({ user_id: userId });
-    const customersWithOutstanding = [];
+    const allCustomers = [];
 
     for (const customer of customers) {
       const customerTransactions = await Transaction.find({ customer_id: customer._id });
@@ -57,18 +57,19 @@ router.get('/', async (req, res) => {
         return t.type === 'credit' ? acc + t.amount : acc - t.amount;
       }, 0);
 
-      if (balance > 0) {
-        customersWithOutstanding.push({
-          id: customer._id,
-          name: customer.name,
-          phone: customer.phone,
-          balance
-        });
-      }
+      allCustomers.push({
+        id: customer._id,
+        name: customer.name,
+        phone: customer.phone,
+        balance
+      });
     }
 
-    // Sort by balance (highest first)
-    customersWithOutstanding.sort((a, b) => b.balance - a.balance);
+    // Sort by balance (highest outstanding first)
+    allCustomers.sort((a, b) => b.balance - a.balance);
+
+    // Get customers with outstanding balance (for backward compatibility)
+    const customersWithOutstanding = allCustomers.filter(c => c.balance > 0);
 
     res.json({
       totalCustomers,
@@ -79,6 +80,7 @@ router.get('/', async (req, res) => {
         debit: todayDebit,
         transactions: todayTransactions.length
       },
+      allCustomers,
       customersWithOutstanding: customersWithOutstanding.slice(0, 10) // Top 10
     });
   } catch (error) {

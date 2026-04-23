@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Users, IndianRupee, TrendingUp, Calendar, LogOut, ArrowRight, Sparkles, Plus, User, Download, Upload, Shield } from 'lucide-react';
+import { Users, IndianRupee, TrendingUp, Calendar, LogOut, Sparkles, Plus, User, Download, Upload, Shield } from 'lucide-react';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
@@ -59,6 +60,19 @@ const Dashboard = () => {
       });
     }
     setParticles(newParticles);
+
+    // Handle Android back button
+    if (isNative) {
+      const backHandler = App.addListener('backButton', ({ canGoBack }) => {
+        if (!canGoBack) {
+          // Don't exit app, just show a toast or do nothing
+          App.exitApp();
+        } else {
+          window.history.back();
+        }
+      });
+      return () => backHandler.remove();
+    }
   }, []);
 
   const fetchDashboard = async () => {
@@ -126,50 +140,54 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => setShowBackupModal(true)}
-              className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-400 to-teal-400 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-400/30 transition-all duration-300 animate-fade-in-up w-full sm:w-auto text-sm sm:text-base"
-              style={{ animationDelay: '0.1s' }}
-            >
-              <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
-              Backup
-            </button>
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-red-400 to-pink-400 text-white rounded-xl hover:shadow-lg hover:shadow-red-400/30 transition-all duration-300 animate-fade-in-up w-full sm:w-auto text-sm sm:text-base"
-              style={{ animationDelay: '0.15s' }}
-            >
-              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
-              Logout
-            </button>
+            <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
+              <button
+                onClick={() => navigate('/customers')}
+                className="flex items-center justify-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-purple-400 to-pink-400 text-white rounded-xl hover:shadow-lg hover:shadow-purple-400/30 transition-all duration-300 animate-fade-in-up flex-1 sm:flex-none text-sm sm:text-base"
+                style={{ animationDelay: '0.1s' }}
+              >
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Manage Customers</span>
+                <span className="sm:hidden">Customers</span>
+              </button>
+              <button
+                onClick={() => setShowBackupModal(true)}
+                className="hidden sm:flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-emerald-400 to-teal-400 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-400/30 transition-all duration-300 animate-fade-in-up text-sm sm:text-base"
+                style={{ animationDelay: '0.1s' }}
+              >
+                <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+                Backup
+              </button>
+              <button
+                onClick={handleLogout}
+                className="hidden sm:flex items-center justify-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-red-400 to-pink-400 text-white rounded-xl hover:shadow-lg hover:shadow-red-400/30 transition-all duration-300 animate-fade-in-up text-sm sm:text-base"
+                style={{ animationDelay: '0.15s' }}
+              >
+                <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+                Logout
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex flex-col gap-4 sm:gap-8">
-          {/* Top Customers with Outstanding - Order 1 on mobile, default on desktop */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-8 flex flex-col gap-4 sm:gap-8 pb-20 sm:pb-8">
+          {/* All Customers - Show directly on dashboard */}
           <div className="premium-card p-3 sm:p-6 animate-fade-in-up order-1 sm:order-3" style={{ animationDelay: '0.6s' }}>
             <div className="flex flex-row justify-between items-center mb-3 sm:mb-6 gap-2">
               <h2 className="text-base sm:text-xl font-semibold text-gray-800 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />
-                <span className="truncate">Top Outstanding</span>
+                <span className="truncate">All Customers</span>
               </h2>
-              <button
-                onClick={() => navigate('/customers')}
-                className="flex items-center gap-1 sm:gap-2 text-purple-600 hover:text-purple-700 font-medium transition-colors text-xs sm:text-base px-2 sm:px-0"
-              >
-                <span className="hidden sm:inline">View All</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
             </div>
 
-            {stats?.customersWithOutstanding?.length > 0 ? (
-              <div className="space-y-2 sm:space-y-3">
-                {stats.customersWithOutstanding.map((customer, index) => (
+            {stats?.allCustomers?.length > 0 ? (
+              <div className="space-y-2 sm:space-y-3 max-h-96 overflow-y-auto">
+                {stats.allCustomers.map((customer, index) => (
                   <div
                     key={customer.id}
                     onClick={() => navigate(`/customers/${customer.id}`)}
                     className="flex items-center justify-between p-2.5 sm:p-4 bg-gray-50 border border-gray-200 rounded-xl sm:rounded-2xl hover:bg-gray-100 hover:scale-[1.01] cursor-pointer transition-all duration-300 animate-fade-in-up"
-                    style={{ animationDelay: `${0.7 + index * 0.1}s` }}
+                    style={{ animationDelay: `${0.7 + index * 0.05}s` }}
                   >
                     <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                       <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
@@ -181,7 +199,7 @@ const Dashboard = () => {
                       </div>
                     </div>
                     <div className="flex-shrink-0 ml-2">
-                      <p className="text-sm sm:text-xl font-bold text-red-500">
+                      <p className={`text-sm sm:text-xl font-bold ${customer.balance > 0 ? 'text-red-500' : 'text-green-500'}`}>
                         ₹{customer.balance.toFixed(2)}
                       </p>
                     </div>
@@ -191,15 +209,15 @@ const Dashboard = () => {
             ) : (
               <div className="text-center py-6 sm:py-12">
                 <div className="w-12 h-12 sm:w-20 sm:h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-4">
-                  <IndianRupee className="w-6 h-6 sm:w-10 sm:h-10 text-gray-400" />
+                  <Users className="w-6 h-6 sm:w-10 sm:h-10 text-gray-400" />
                 </div>
-                <p className="text-gray-500 text-xs sm:text-base">No outstanding balances</p>
+                <p className="text-gray-500 text-xs sm:text-base">No customers yet</p>
               </div>
             )}
           </div>
 
-          {/* Quick Actions - Order 2 on mobile, default on desktop */}
-          <div className="flex justify-center animate-fade-in-up order-2 sm:order-4" style={{ animationDelay: '0.8s' }}>
+          {/* Quick Actions - Only on desktop */}
+          <div className="hidden sm:flex justify-center animate-fade-in-up order-2 sm:order-4" style={{ animationDelay: '0.8s' }}>
             <button
               onClick={() => navigate('/customers')}
               className="premium-button flex items-center justify-center gap-3 text-base sm:text-lg px-6 sm:px-8 py-3 sm:py-4 w-full sm:w-auto"
@@ -288,6 +306,24 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Footer - Backup and Logout */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-3 flex gap-3 sm:hidden z-40">
+        <button
+          onClick={() => setShowBackupModal(true)}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-emerald-400 to-teal-400 text-white rounded-xl hover:shadow-lg hover:shadow-emerald-400/30 transition-all duration-300 text-sm"
+        >
+          <Shield className="w-4 h-4" />
+          Backup
+        </button>
+        <button
+          onClick={handleLogout}
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-red-400 to-pink-400 text-white rounded-xl hover:shadow-lg hover:shadow-red-400/30 transition-all duration-300 text-sm"
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
+        </button>
       </div>
 
       {/* Backup/Restore Modal */}
