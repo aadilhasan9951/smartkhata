@@ -341,8 +341,10 @@ const Customers = () => {
                         value = value.slice(0, 10);
                       }
                       setFormData({ ...formData, phone: value });
+                      // Remove +91 prefix and spaces for validation
+                      const cleanPhone = value.replace('+91', '').replace(/\s/g, '');
                       const phoneRegex = /^[6-9]\d{9}$/;
-                      setIsValidPhone(value.length === 10 && phoneRegex.test(value));
+                      setIsValidPhone(cleanPhone.length === 10 && phoneRegex.test(cleanPhone));
                     }}
                     onPaste={(e) => {
                       e.preventDefault();
