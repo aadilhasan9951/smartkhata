@@ -37,7 +37,7 @@ const removeToken = async () => {
 // Create axios instance with default headers
 const api = axios.create({
   baseURL: API_URL,
-  withCredentials: false
+  withCredentials: true
 });
 
 // Add token to requests if available
