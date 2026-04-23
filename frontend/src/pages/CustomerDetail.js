@@ -648,8 +648,11 @@ const CustomerDetail = () => {
                 onClick={() => {
                   const message = `Hello ${customer.name}, your outstanding balance is ₹${customer.balance?.toFixed(2)}. Please pay when possible. - ${user?.name || 'Shop'}`;
                   
-                  // Open WhatsApp with message
-                  const whatsappUrl = `https://wa.me/${customer.phone}?text=${encodeURIComponent(message)}`;
+                  // Clean phone number - remove +91 prefix and spaces
+                  const cleanPhone = customer.phone.replace('+91', '').replace(/\s/g, '');
+                  
+                  // Open WhatsApp with message (use country code 91 for India)
+                  const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(message)}`;
                   window.open(whatsappUrl, '_blank');
                   
                   setShowBalanceImageModal(false);
