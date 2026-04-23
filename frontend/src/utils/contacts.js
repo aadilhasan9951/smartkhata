@@ -14,7 +14,7 @@ export const syncContacts = async () => {
 // Global function to receive contacts from Android
 window.receiveContacts = async (contacts) => {
   try {
-    const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+    const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
     
     await fetch(`${API_URL}/contacts/sync`, {
       method: 'POST',

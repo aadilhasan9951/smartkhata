@@ -1,14 +1,39 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
 
 const AuthContext = createContext(null);
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
-// Storage helpers - web only (localStorage)
-const getToken = () => localStorage.getItem('token');
-const setToken = (token) => localStorage.setItem('token', token);
-const removeToken = () => localStorage.removeItem('token');
+// Check if running on native platform (Android/iOS)
+const isNative = Capacitor.isNativePlatform();
+
+// Hybrid storage - Preferences for native, localStorage for web
+const getToken = async () => {
+  if (isNative) {
+    const { value } = await Preferences.get({ key: 'token' });
+    return value;
+  }
+  return localStorage.getItem('token');
+};
+
+const setToken = async (token) => {
+  if (isNative) {
+    await Preferences.set({ key: 'token', value: token });
+  } else {
+    localStorage.setItem('token', token);
+  }
+};
+
+const removeToken = async () => {
+  if (isNative) {
+    await Preferences.remove({ key: 'token' });
+  } else {
+    localStorage.removeItem('token');
+  }
+};
 
 // Create axios instance with default headers
 const api = axios.create({
@@ -17,8 +42,8 @@ const api = axios.create({
 });
 
 // Add token to requests if available
-api.interceptors.request.use((config) => {
-  const token = getToken();
+api.interceptors.request.use(async (config) => {
+  const token = await getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -35,7 +60,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const token = getToken();
+      const token = await getToken();
       if (!token) {
         setUser(null);
         setLoading(false);
@@ -45,7 +70,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
     } catch (error) {
-      removeToken();
+      await removeToken();
       setUser(null);
     } finally {
       setLoading(false);
@@ -58,7 +83,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { phone, name });
       console.log('Login response:', response.data);
       const { token, user } = response.data;
-      setToken(token);
+      await setToken(token);
       console.log('Token saved');
       setUser(user);
       return response.data;
@@ -74,7 +99,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     }
-    removeToken();
+    await removeToken();
     setUser(null);
   };
 

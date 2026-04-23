@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Users, IndianRupee, TrendingUp, Calendar, LogOut, ArrowRight, Sparkles, Plus, User, Download, Upload, Shield } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
 // Use localStorage for web (simpler approach)
 const getToken = () => localStorage.getItem('token');

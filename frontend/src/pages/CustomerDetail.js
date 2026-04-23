@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, IndianRupee, Trash2, Send, Calendar, Bell, Sparkles } from 'lucide-react';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
 // Use localStorage for web (simpler approach)
 const getToken = () => localStorage.getItem('token');

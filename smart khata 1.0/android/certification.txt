@@ -1,0 +1,24 @@
+---------------------------------------------------
+Here are the ownership and the certification details
+of the smart khata 1.0
+---------------------------------------------------
+
+app_name - 						smart khata
+app_alias - 					smartkhata
+app_author_name - 				My Company
+app_author_organizational - 	My Company
+app_author_organization - 		My Company
+app_author_locality - 			My Company
+app_author_state - 				Jharkhand
+app_author_country - 			India
+app_password - 					OM0CwtyO3pyJ
+app_versionName - 				versionName "1.0"
+app_versionCode - 				100
+
+---------------------------------------------------
+The certification was created by WebIntoApp.com at
+the Thursday 23rd of April 2026 04:32:13 PM
+
+https://webintoapp.com
+---------------------------------------------------
+
