@@ -3,8 +3,22 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Users, IndianRupee, TrendingUp, Calendar, LogOut, ArrowRight, Sparkles, Plus, User, Download, Upload, Shield } from 'lucide-react';
+import { Preferences } from '@capacitor/preferences';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// Create axios instance with JWT token
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+api.interceptors.request.use(async (config) => {
+  const { value: token } = await Preferences.get({ key: 'token' });
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -36,9 +50,7 @@ const Dashboard = () => {
 
   const fetchDashboard = async () => {
     try {
-      const response = await axios.get(`${API_URL}/dashboard`, {
-        withCredentials: true
-      });
+      const response = await api.get('/dashboard');
       setStats(response.data);
     } catch (error) {
       console.error('Failed to fetch dashboard:', error);
@@ -301,8 +313,7 @@ const Dashboard = () => {
               <button
                 onClick={async () => {
                   try {
-                    const response = await axios.get(`${API_URL}/backup/export`, {
-                      withCredentials: true,
+                    const response = await api.get('/backup/export', {
                       responseType: 'blob'
                     });
                     const url = window.URL.createObjectURL(new Blob([response.data]));
@@ -353,9 +364,7 @@ const Dashboard = () => {
                       setImporting(false);
                       return;
                     }
-                    const response = await axios.post(`${API_URL}/backup/import`, { backupData }, {
-                      withCredentials: true
-                    });
+                    const response = await api.post('/backup/import', { backupData });
                     setImportResult(response.data.imported);
                     fetchDashboard();
                   } catch (err) {

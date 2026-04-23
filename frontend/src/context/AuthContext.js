@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { Preferences } from '@capacitor/preferences';
 
 const AuthContext = createContext(null);
 
@@ -11,8 +12,8 @@ const api = axios.create({
 });
 
 // Add token to requests if available
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+api.interceptors.request.use(async (config) => {
+  const { value: token } = await Preferences.get({ key: 'token' });
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -29,7 +30,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const { value: token } = await Preferences.get({ key: 'token' });
       if (!token) {
         setUser(null);
         setLoading(false);
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
     } catch (error) {
-      localStorage.removeItem('token');
+      await Preferences.remove({ key: 'token' });
       setUser(null);
     } finally {
       setLoading(false);
@@ -47,16 +48,24 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (phone, name) => {
-    const response = await api.post('/auth/login', { phone, name });
-    const { token, user } = response.data;
-    localStorage.setItem('token', token);
-    setUser(user);
-    return response.data;
+    try {
+      console.log('Login attempt:', { phone, name });
+      const response = await api.post('/auth/login', { phone, name });
+      console.log('Login response:', response.data);
+      const { token, user } = response.data;
+      await Preferences.set({ key: 'token', value: token });
+      console.log('Token saved to Preferences');
+      setUser(user);
+      return response.data;
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   };
 
   const logout = async () => {
     await api.post('/auth/logout');
-    localStorage.removeItem('token');
+    await Preferences.remove({ key: 'token' });
     setUser(null);
   };
 

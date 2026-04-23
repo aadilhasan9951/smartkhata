@@ -3,8 +3,22 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, IndianRupee, Trash2, Send, Calendar, Bell, Sparkles } from 'lucide-react';
+import { Preferences } from '@capacitor/preferences';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// Create axios instance with JWT token
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+api.interceptors.request.use(async (config) => {
+  const { value: token } = await Preferences.get({ key: 'token' });
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 const CustomerDetail = () => {
   const { id } = useParams();
@@ -34,18 +48,14 @@ const CustomerDetail = () => {
 
   const fetchCustomerData = useCallback(async () => {
     try {
-      const customerResponse = await axios.get(`${API_URL}/customers/${id}`, {
-        withCredentials: true
-      });
+      const customerResponse = await api.get(`/customers/${id}`);
       setCustomer(customerResponse.data);
 
-      let url = `${API_URL}/transactions/customer/${id}`;
+      let url = `/transactions/customer/${id}`;
       if (filterType !== 'all') {
         url += `?type=${filterType}`;
       }
-      const transactionsResponse = await axios.get(url, {
-        withCredentials: true
-      });
+      const transactionsResponse = await api.get(url);
       setTransactions(transactionsResponse.data.transactions);
     } catch (error) {
       console.error('Failed to fetch customer data:', error);
@@ -56,9 +66,7 @@ const CustomerDetail = () => {
 
   const fetchReminderSchedule = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_URL}/reminders/customer/${id}`, {
-        withCredentials: true
-      });
+      const response = await api.get(`/reminders/customer/${id}`);
       if (response.data.schedule) {
         setExistingReminder(response.data.schedule);
         setReminderSettings({
@@ -94,13 +102,11 @@ const CustomerDetail = () => {
   const handleAddTransaction = async (e) => {
     e.preventDefault();
     try {
-      await axios.post(`${API_URL}/transactions`, {
+      await api.post('/transactions', {
         customer_id: id,
         amount: parseFloat(transactionForm.amount),
         type: transactionForm.type,
         note: transactionForm.note
-      }, {
-        withCredentials: true
       });
       setShowAddTransaction(false);
       setTransactionForm({ amount: '', type: 'credit', note: '' });
@@ -114,9 +120,7 @@ const CustomerDetail = () => {
     if (!window.confirm('Are you sure you want to delete this transaction?')) return;
 
     try {
-      await axios.delete(`${API_URL}/transactions/${transactionId}`, {
-        withCredentials: true
-      });
+      await api.delete(`/transactions/${transactionId}`);
       fetchCustomerData();
     } catch (error) {
       console.error('Failed to delete transaction:', error);
@@ -207,8 +211,6 @@ const CustomerDetail = () => {
       await axios.post(`${API_URL}/reminders`, {
         customer_id: id,
         ...reminderSettings
-      }, {
-        withCredentials: true
       });
       setShowReminderSettings(false);
       fetchReminderSchedule();
@@ -232,9 +234,7 @@ const CustomerDetail = () => {
     if (!existingReminder) return;
     
     try {
-      await axios.patch(`${API_URL}/reminders/${existingReminder._id}/toggle`, {}, {
-        withCredentials: true
-      });
+      await api.patch(`/reminders/${existingReminder._id}/toggle`, {});
       fetchReminderSchedule();
     } catch (error) {
       console.error('Failed to toggle reminder:', error);
@@ -247,9 +247,7 @@ const CustomerDetail = () => {
     if (!window.confirm('Are you sure you want to delete this reminder schedule?')) return;
 
     try {
-      await axios.delete(`${API_URL}/reminders/${existingReminder._id}`, {
-        withCredentials: true
-      });
+      await api.delete(`/reminders/${existingReminder._id}`);
       
       // If running on Android app, cancel local reminder
       if (window.AndroidInterface && window.AndroidInterface.cancelReminder) {

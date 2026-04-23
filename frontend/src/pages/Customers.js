@@ -2,8 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Plus, Phone, User, Trash2, Edit, ArrowLeft, Sparkles } from 'lucide-react';
+import { Preferences } from '@capacitor/preferences';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// Create axios instance with JWT token
+const api = axios.create({
+  baseURL: API_URL,
+});
+
+api.interceptors.request.use(async (config) => {
+  const { value: token } = await Preferences.get({ key: 'token' });
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -35,9 +49,7 @@ const Customers = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/customers`, {
-        withCredentials: true
-      });
+      const response = await api.get('/customers');
       setCustomers(response.data.customers);
     } catch (error) {
       console.error('Failed to fetch customers:', error);
@@ -53,9 +65,7 @@ const Customers = () => {
     }
 
     try {
-      const response = await axios.get(`${API_URL}/customers/search?query=${searchQuery}`, {
-        withCredentials: true
-      });
+      const response = await api.get(`/customers/search?query=${searchQuery}`);
       setCustomers(response.data.customers);
     } catch (error) {
       console.error('Search failed:', error);
@@ -72,9 +82,7 @@ const Customers = () => {
     }
     
     try {
-      await axios.post(`${API_URL}/customers`, formData, {
-        withCredentials: true
-      });
+      await api.post('/customers', formData);
       setShowAddModal(false);
       setFormData({ name: '', phone: '' });
       setIsValidPhone(false);
@@ -94,9 +102,7 @@ const Customers = () => {
     }
     
     try {
-      await axios.put(`${API_URL}/customers/${editingCustomer._id}`, formData, {
-        withCredentials: true
-      });
+      await api.put(`/customers/${editingCustomer._id}`, formData);
       setEditingCustomer(null);
       setFormData({ name: '', phone: '' });
       setIsValidPhone(false);
@@ -110,9 +116,7 @@ const Customers = () => {
     if (!window.confirm('Are you sure you want to delete this customer?')) return;
 
     try {
-      await axios.delete(`${API_URL}/customers/${id}`, {
-        withCredentials: true
-      });
+      await api.delete(`/customers/${id}`);
       fetchCustomers();
     } catch (error) {
       console.error('Failed to delete customer:', error);
