@@ -2,11 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Search, Plus, Phone, User, Trash2, Edit, ArrowLeft, Sparkles } from 'lucide-react';
+import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
-// Use localStorage for web (simpler approach)
-const getToken = () => localStorage.getItem('token');
+// Hybrid storage - Preferences for native, localStorage for web
+const isNative = Capacitor.isNativePlatform();
+
+const getToken = async () => {
+  if (isNative) {
+    const { value } = await Preferences.get({ key: 'token' });
+    return value;
+  }
+  return localStorage.getItem('token');
+};
 
 // Create axios instance with JWT token
 const api = axios.create({
@@ -14,8 +24,8 @@ const api = axios.create({
   withCredentials: false
 });
 
-api.interceptors.request.use((config) => {
-  const token = getToken();
+api.interceptors.request.use(async (config) => {
+  const token = await getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
