@@ -8,16 +8,10 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: [
-    'https://smartkhata-woad.vercel.app',
-    'https://smartkhata-ltjcfezg5-aadilhasan9951s-projects.vercel.app',
-    'https://smartkhata-r934q9gw0-aadilhasan9951s-projects.vercel.app',
-    'https://smartkhata-mnwgc9z6j-aadilhasan9951s-projects.vercel.app',
-    'http://localhost:3000'
-  ],
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  credentials: false
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
