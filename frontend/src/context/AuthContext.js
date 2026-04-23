@@ -1,10 +1,38 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
 
 const AuthContext = createContext(null);
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// Storage helpers
+const isNative = Capacitor.isNativePlatform();
+
+const getToken = async () => {
+  if (isNative) {
+    const { value } = await Preferences.get({ key: 'token' });
+    return value;
+  }
+  return localStorage.getItem('token');
+};
+
+const setToken = async (token) => {
+  if (isNative) {
+    await Preferences.set({ key: 'token', value: token });
+  } else {
+    localStorage.setItem('token', token);
+  }
+};
+
+const removeToken = async () => {
+  if (isNative) {
+    await Preferences.remove({ key: 'token' });
+  } else {
+    localStorage.removeItem('token');
+  }
+};
 
 // Create axios instance with default headers
 const api = axios.create({
@@ -13,7 +41,7 @@ const api = axios.create({
 
 // Add token to requests if available
 api.interceptors.request.use(async (config) => {
-  const { value: token } = await Preferences.get({ key: 'token' });
+  const token = await getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -30,7 +58,7 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
-      const { value: token } = await Preferences.get({ key: 'token' });
+      const token = await getToken();
       if (!token) {
         setUser(null);
         setLoading(false);
@@ -40,7 +68,7 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/auth/me');
       setUser(response.data.user);
     } catch (error) {
-      await Preferences.remove({ key: 'token' });
+      await removeToken();
       setUser(null);
     } finally {
       setLoading(false);
@@ -53,8 +81,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/auth/login', { phone, name });
       console.log('Login response:', response.data);
       const { token, user } = response.data;
-      await Preferences.set({ key: 'token', value: token });
-      console.log('Token saved to Preferences');
+      await setToken(token);
+      console.log('Token saved');
       setUser(user);
       return response.data;
     } catch (error) {
@@ -65,7 +93,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     await api.post('/auth/logout');
-    await Preferences.remove({ key: 'token' });
+    await removeToken();
     setUser(null);
   };
 

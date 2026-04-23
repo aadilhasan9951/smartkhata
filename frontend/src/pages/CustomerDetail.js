@@ -4,8 +4,20 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { ArrowLeft, Plus, IndianRupee, Trash2, Send, Calendar, Bell, Sparkles } from 'lucide-react';
 import { Preferences } from '@capacitor/preferences';
+import { Capacitor } from '@capacitor/core';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+
+// Storage helpers
+const isNative = Capacitor.isNativePlatform();
+
+const getToken = async () => {
+  if (isNative) {
+    const { value } = await Preferences.get({ key: 'token' });
+    return value;
+  }
+  return localStorage.getItem('token');
+};
 
 // Create axios instance with JWT token
 const api = axios.create({
@@ -13,7 +25,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(async (config) => {
-  const { value: token } = await Preferences.get({ key: 'token' });
+  const token = await getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
