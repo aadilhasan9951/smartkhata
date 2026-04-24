@@ -67,9 +67,19 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      const response = await api.get('/auth/me');
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Auth check timeout')), 10000)
+      );
+      
+      const response = await Promise.race([
+        api.get('/auth/me'),
+        timeoutPromise
+      ]);
+      
       setUser(response.data.user);
     } catch (error) {
+      console.error('Auth check error:', error);
       await removeToken();
       setUser(null);
     } finally {
