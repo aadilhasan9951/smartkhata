@@ -832,13 +832,13 @@ const CustomerDetail = () => {
               <Send className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
             </div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">
-              SMS Sent Successfully!
+              SMS App Opened!
             </h2>
             <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
-              SMS reminder has been sent to <span className="font-semibold text-purple-600">{customer.name}</span>
+              SMS app has been opened with message for <span className="font-semibold text-purple-600">{customer.name}</span>
             </p>
             <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">
-              Phone: {customer.phone}
+              Please tap send in the SMS app to send the message
             </p>
             <button
               onClick={() => setShowSMSSuccessModal(false)}

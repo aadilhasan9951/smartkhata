@@ -1,7 +1,9 @@
 package com.smartkhata.app;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.telephony.SmsManager;
 import android.util.Log;
 import androidx.core.content.ContextCompat;
@@ -65,15 +67,20 @@ public class SMSSender extends Plugin {
             
             Log.d(TAG, "Cleaned phone number: " + phone);
             
-            // Send SMS
-            SmsManager smsManager = SmsManager.getDefault();
-            smsManager.sendTextMessage(phone, null, message, null, null);
+            // Use Intent to open SMS app (more reliable)
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setData(Uri.parse("sms:" + phone));
+            intent.putExtra("sms_body", message);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             
-            Log.d(TAG, "SMS sent successfully to: " + phone);
+            Log.d(TAG, "Opening SMS app with intent");
+            getActivity().startActivity(intent);
+            
+            Log.d(TAG, "SMS app opened successfully");
             
             JSObject result = new JSObject();
             result.put("success", true);
-            result.put("message", "SMS sent successfully");
+            result.put("message", "SMS app opened successfully");
             result.put("phone", phone);
             call.resolve(result);
             
