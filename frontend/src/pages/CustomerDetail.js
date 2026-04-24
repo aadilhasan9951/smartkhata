@@ -9,6 +9,7 @@ import { registerPlugin } from '@capacitor/core';
 
 const WhatsAppShare = registerPlugin('WhatsAppShare');
 const SMSPermission = registerPlugin('SMSPermission');
+const SMSSender = registerPlugin('SMSSender');
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
@@ -275,13 +276,21 @@ const CustomerDetail = () => {
       
       const message = `Dear ${customer.name}, your pending amount is ₹${customer.balance?.toFixed(2)}. Please clear your dues. - ${user?.name || 'Shop'}`;
       
-      // Call backend to send SMS
-      await api.post('/reminders/send-sms', {
-        phone: customer.phone,
-        message: message
-      });
-      
-      alert('SMS reminder sent successfully!');
+      // Use native Android SMS sender
+      if (Capacitor.isNativePlatform()) {
+        await SMSSender.sendSMS({
+          phone: customer.phone,
+          message: message
+        });
+        alert('SMS reminder sent successfully!');
+      } else {
+        // Fallback to backend for web
+        await api.post('/reminders/send-sms', {
+          phone: customer.phone,
+          message: message
+        });
+        alert('SMS reminder queued successfully!');
+      }
     } catch (error) {
       console.error('Failed to send SMS reminder:', error);
       alert('Failed to send SMS reminder. Please try again.');

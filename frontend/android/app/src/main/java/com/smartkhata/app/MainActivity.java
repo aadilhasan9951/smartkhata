@@ -8,6 +8,7 @@ import androidx.work.ExistingPeriodicWorkPolicy;
 import com.getcapacitor.BridgeActivity;
 import com.smartkhata.app.WhatsAppShare;
 import com.smartkhata.app.SMSPermission;
+import com.smartkhata.app.SMSSender;
 import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends BridgeActivity {
@@ -18,6 +19,7 @@ public class MainActivity extends BridgeActivity {
         // Register custom plugins
         this.registerPlugin(WhatsAppShare.class);
         this.registerPlugin(SMSPermission.class);
+        this.registerPlugin(SMSSender.class);
         
         // Schedule daily reminder worker
         scheduleReminderWorker();
