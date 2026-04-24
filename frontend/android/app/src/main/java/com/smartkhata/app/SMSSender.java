@@ -45,16 +45,22 @@ public class SMSSender extends Plugin {
                 return;
             }
             
-            // Clean phone number - remove spaces, dashes, etc.
+            // Clean phone number - remove spaces, dashes, parentheses
             phone = phone.replaceAll("[\\s\\-()]", "");
             
-            // Add country code if not present (assuming India +91)
-            if (!phone.startsWith("+")) {
-                if (phone.length() == 10) {
-                    phone = "+91" + phone;
-                } else if (phone.length() == 12 && phone.startsWith("91")) {
-                    phone = "+" + phone;
-                }
+            // Handle various phone number formats
+            // If starts with 91 and is 12 digits, add + prefix
+            if (phone.startsWith("91") && phone.length() == 12) {
+                phone = "+" + phone;
+            }
+            // If is 10 digits, add +91 prefix
+            else if (phone.length() == 10) {
+                phone = "+91" + phone;
+            }
+            // If already has + prefix, keep as is
+            else if (!phone.startsWith("+")) {
+                // Default: add +91 if no country code
+                phone = "+91" + phone;
             }
             
             Log.d(TAG, "Cleaned phone number: " + phone);
