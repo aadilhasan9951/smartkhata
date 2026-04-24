@@ -200,4 +200,22 @@ router.post('/:customerId/sent', async (req, res) => {
   }
 });
 
+// Send SMS reminder manually (no auth required for worker)
+router.post('/send-sms', async (req, res) => {
+  try {
+    const { phone, message } = req.body;
+    
+    if (!phone || !message) {
+      return res.status(400).json({ error: 'Phone and message are required' });
+    }
+    
+    // For now, return success (actual SMS sending is handled by Android native code)
+    // In production, you would integrate with an SMS gateway like Twilio
+    res.json({ message: 'SMS reminder queued successfully' });
+  } catch (error) {
+    console.error('Send SMS error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

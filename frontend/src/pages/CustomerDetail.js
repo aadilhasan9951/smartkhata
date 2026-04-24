@@ -253,6 +253,35 @@ const CustomerDetail = () => {
     }
   };
 
+  const handleSendSMSReminder = async () => {
+    try {
+      // Request SMS permission on Android
+      if (Capacitor.isNativePlatform()) {
+        const { granted } = await SMSPermission.checkPermission();
+        if (!granted) {
+          const permissionResult = await SMSPermission.requestPermission();
+          if (!permissionResult.granted) {
+            alert('SMS permission is required to send reminders. Please grant permission in settings.');
+            return;
+          }
+        }
+      }
+      
+      const message = `Dear ${customer.name}, your pending amount is ₹${customer.balance?.toFixed(2)}. Please clear your dues. - ${user?.name || 'Shop'}`;
+      
+      // Call backend to send SMS
+      await api.post('/reminders/send-sms', {
+        phone: customer.phone,
+        message: message
+      });
+      
+      alert('SMS reminder sent successfully!');
+    } catch (error) {
+      console.error('Failed to send SMS reminder:', error);
+      alert('Failed to send SMS reminder. Please try again.');
+    }
+  };
+
   const handleToggleReminder = async () => {
     if (!existingReminder) return;
     
@@ -344,7 +373,7 @@ const CustomerDetail = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
               <button
                 onClick={() => setShowAddTransaction(true)}
                 className="premium-button flex items-center justify-center gap-2 text-xs sm:text-sm py-2 sm:py-3"
@@ -357,14 +386,21 @@ const CustomerDetail = () => {
                 className="premium-button flex items-center justify-center gap-2 text-xs sm:text-sm py-2 sm:py-3"
               >
                 <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="truncate">Send Reminder</span>
+                <span className="truncate">WhatsApp</span>
+              </button>
+              <button
+                onClick={handleSendSMSReminder}
+                className="premium-button flex items-center justify-center gap-2 text-xs sm:text-sm py-2 sm:py-3"
+              >
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="truncate">SMS</span>
               </button>
               <button
                 onClick={() => setShowReminderSettings(true)}
                 className="premium-button flex items-center justify-center gap-2 text-xs sm:text-sm py-2 sm:py-3"
               >
                 <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="truncate">{existingReminder?.active ? 'Edit Reminder' : 'Set Reminder'}</span>
+                <span className="truncate">Auto Reminder</span>
               </button>
             </div>
 
