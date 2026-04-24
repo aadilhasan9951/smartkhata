@@ -49,6 +49,7 @@ const CustomerDetail = () => {
   const [showBalanceImageModal, setShowBalanceImageModal] = useState(false);
   const [balanceImageUrl, setBalanceImageUrl] = useState('');
   const [showReminderSuccessModal, setShowReminderSuccessModal] = useState(false);
+  const [showSMSSuccessModal, setShowSMSSuccessModal] = useState(false);
   const [transactionForm, setTransactionForm] = useState({
     amount: '',
     type: 'credit',
@@ -282,14 +283,14 @@ const CustomerDetail = () => {
           phone: customer.phone,
           message: message
         });
-        alert('SMS reminder sent successfully!');
+        setShowSMSSuccessModal(true);
       } else {
         // Fallback to backend for web
         await api.post('/reminders/send-sms', {
           phone: customer.phone,
           message: message
         });
-        alert('SMS reminder queued successfully!');
+        setShowSMSSuccessModal(true);
       }
     } catch (error) {
       console.error('Failed to send SMS reminder:', error);
@@ -817,6 +818,31 @@ const CustomerDetail = () => {
             <button
               onClick={() => setShowReminderSuccessModal(false)}
               className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-400 to-emerald-400 text-white rounded-xl hover:shadow-lg hover:shadow-green-400/30 transition-all duration-300 text-sm sm:text-base font-semibold"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showSMSSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="premium-card p-6 sm:p-8 w-full max-w-md animate-scale-in text-center">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-400 to-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6">
+              <Send className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 sm:mb-3">
+              SMS Sent Successfully!
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+              SMS reminder has been sent to <span className="font-semibold text-purple-600">{customer.name}</span>
+            </p>
+            <p className="text-xs sm:text-sm text-gray-500 mb-4 sm:mb-6">
+              Phone: {customer.phone}
+            </p>
+            <button
+              onClick={() => setShowSMSSuccessModal(false)}
+              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-400 to-indigo-400 text-white rounded-xl hover:shadow-lg hover:shadow-blue-400/30 transition-all duration-300 text-sm sm:text-base font-semibold"
             >
               OK
             </button>
