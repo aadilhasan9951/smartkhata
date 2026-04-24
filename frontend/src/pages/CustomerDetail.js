@@ -261,7 +261,13 @@ const CustomerDetail = () => {
         if (!granted) {
           const permissionResult = await SMSPermission.requestPermission();
           if (!permissionResult.granted) {
-            alert('SMS permission is required to send reminders. Please grant permission in settings.');
+            if (permissionResult.needsSettings) {
+              // For Android 13+, open settings
+              await SMSPermission.openSettings();
+              alert('Please grant SMS permission in app settings, then try again.');
+            } else {
+              alert('SMS permission is required to send reminders. Please grant permission.');
+            }
             return;
           }
         }

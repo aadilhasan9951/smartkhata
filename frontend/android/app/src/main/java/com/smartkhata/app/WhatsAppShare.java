@@ -22,15 +22,18 @@ public class WhatsAppShare extends Plugin {
             String message = call.getString("message", "");
             
             // Remove data:image/png;base64, prefix if present
-            if (imageData.startsWith("data:image")) {
+            if (imageData != null && imageData.startsWith("data:image")) {
                 imageData = imageData.substring(imageData.indexOf(",") + 1);
             }
             
             // Decode Base64 to bytes
             byte[] imageBytes = Base64.decode(imageData, Base64.DEFAULT);
             
-            // Save to cache directory
-            File cacheDir = getContext().getCacheDir();
+            // Save to external cache directory (more accessible for sharing)
+            File cacheDir = getContext().getExternalCacheDir();
+            if (cacheDir == null) {
+                cacheDir = getContext().getCacheDir();
+            }
             File imageFile = new File(cacheDir, "balance_share.png");
             FileOutputStream fos = new FileOutputStream(imageFile);
             fos.write(imageBytes);
