@@ -8,6 +8,7 @@ import { Capacitor } from '@capacitor/core';
 import { registerPlugin } from '@capacitor/core';
 
 const WhatsAppShare = registerPlugin('WhatsAppShare');
+const SMSPermission = registerPlugin('SMSPermission');
 
 const API_URL = process.env.REACT_APP_API_URL || 'https://smartkhata-8jaj.onrender.com/api';
 
@@ -225,6 +226,18 @@ const CustomerDetail = () => {
 
   const handleSaveReminder = async () => {
     try {
+      // Request SMS permission on Android
+      if (Capacitor.isNativePlatform()) {
+        const { granted } = await SMSPermission.checkPermission();
+        if (!granted) {
+          const permissionResult = await SMSPermission.requestPermission();
+          if (!permissionResult.granted) {
+            alert('SMS permission is required for auto reminders. Please grant permission in settings.');
+            return;
+          }
+        }
+      }
+      
       await api.post('/reminders', {
         customer_id: id,
         ...reminderSettings
@@ -234,17 +247,6 @@ const CustomerDetail = () => {
       
       // Show success modal
       setShowReminderSuccessModal(true);
-      
-      // If running on Android app, schedule local reminder
-      if (window.AndroidInterface && window.AndroidInterface.scheduleReminder) {
-        window.AndroidInterface.scheduleReminder(
-          customer.name,
-          customer.phone,
-          customer.balance?.toFixed(2) || '0.00',
-          reminderSettings.time_of_day,
-          reminderSettings.frequency
-        );
-      }
     } catch (error) {
       console.error('Failed to save reminder:', error);
       alert('Failed to set reminder. Please try again.');

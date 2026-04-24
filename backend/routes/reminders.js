@@ -150,4 +150,54 @@ router.patch('/:scheduleId/toggle', async (req, res) => {
   }
 });
 
+// Get pending reminders for SMS worker (no auth required for worker)
+router.get('/pending', async (req, res) => {
+  try {
+    const { calculateNextSend } = require('../jobs/sendReminders');
+    const now = new Date();
+    
+    const schedules = await ReminderSchedule.find({
+      active: true,
+      next_send: { $lte: now }
+    }).populate('customer_id', 'name phone balance');
+
+    const pendingReminders = schedules.map(schedule => {
+      return {
+        customer_id: schedule.customer_id._id,
+        customer_name: schedule.customer_id.name,
+        phone: schedule.customer_id.phone,
+        balance: schedule.customer_id.balance || 0,
+        shop_name: req.user?.name || 'Shop',
+        last_reminded_at: schedule.last_reminded_at ? schedule.last_reminded_at.getTime() : null
+      };
+    });
+
+    res.json({ data: pendingReminders });
+  } catch (error) {
+    console.error('Get pending reminders error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Update reminder sent timestamp (no auth required for worker)
+router.post('/:customerId/sent', async (req, res) => {
+  try {
+    const schedule = await ReminderSchedule.findOne({
+      customer_id: req.params.customerId
+    });
+
+    if (schedule) {
+      schedule.last_reminded_at = new Date();
+      const { calculateNextSend } = require('../jobs/sendReminders');
+      schedule.next_send = calculateNextSend(schedule);
+      await schedule.save();
+    }
+
+    res.json({ message: 'Reminder timestamp updated' });
+  } catch (error) {
+    console.error('Update reminder sent error:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
