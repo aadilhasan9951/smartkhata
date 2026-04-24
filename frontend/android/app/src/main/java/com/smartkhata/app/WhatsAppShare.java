@@ -2,6 +2,7 @@ package com.smartkhata.app;
 
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Environment;
 import android.util.Base64;
 import androidx.core.content.FileProvider;
 import java.io.File;
@@ -30,12 +31,13 @@ public class WhatsAppShare extends Plugin {
             // Decode Base64 to bytes
             byte[] imageBytes = Base64.decode(imageData, Base64.DEFAULT);
             
-            // Save to external cache directory
-            File cacheDir = getContext().getExternalCacheDir();
-            if (cacheDir == null) {
-                cacheDir = getContext().getCacheDir();
+            // Save to external storage
+            File externalDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), "SmartKhata");
+            if (!externalDir.exists()) {
+                externalDir.mkdirs();
             }
-            File imageFile = new File(cacheDir, "balance_share.png");
+            File imageFile = new File(externalDir, "balance_share.png");
             FileOutputStream fos = new FileOutputStream(imageFile);
             fos.write(imageBytes);
             fos.close();
@@ -47,6 +49,18 @@ public class WhatsAppShare extends Plugin {
                 imageFile
             );
             
+            // Clean phone number
+            if (phone != null && !phone.isEmpty()) {
+                phone = phone.replaceAll("[\\s\\-()]", "");
+                if (phone.startsWith("91") && phone.length() == 12) {
+                    phone = phone.substring(2);
+                } else if (phone.length() == 10) {
+                    // Keep as is
+                } else if (phone.startsWith("+91")) {
+                    phone = phone.substring(3);
+                }
+            }
+            
             // Create WhatsApp intent with both image and text
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("image/*");
@@ -55,17 +69,17 @@ public class WhatsAppShare extends Plugin {
             intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             
-            // Directly open WhatsApp
-            intent.setPackage("com.whatsapp");
-            
+            // Try to open WhatsApp
             try {
                 getActivity().startActivity(intent);
             } catch (Exception e) {
-                // If WhatsApp not available, try WhatsApp Business
-                intent.setPackage("com.whatsapp.w4b");
-                try {
-                    getActivity().startActivity(intent);
-                } catch (Exception e2) {
+                // Fallback: Open WhatsApp with text only using URL scheme
+                if (phone != null && !phone.isEmpty()) {
+                    String whatsappUrl = "https://wa.me/91" + phone + "?text=" + Uri.encode(message);
+                    Intent webIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(whatsappUrl));
+                    webIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getActivity().startActivity(webIntent);
+                } else {
                     // Fallback to chooser
                     intent.setPackage(null);
                     getActivity().startActivity(Intent.createChooser(intent, "Share via WhatsApp"));
